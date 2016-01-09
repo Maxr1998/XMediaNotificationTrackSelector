@@ -4,6 +4,7 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.app.PendingIntent;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.graphics.Color;
 import android.view.MotionEvent;
@@ -15,7 +16,6 @@ import android.view.animation.Animation;
 import android.view.animation.Transformation;
 import android.widget.AdapterView;
 import android.widget.FrameLayout;
-import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
@@ -57,12 +57,14 @@ public class TrackSelector {
                                 && root.getChildAt(2) instanceof LinearLayout
                                 && root.getChildAt(3) instanceof ImageView)
                                 || root.getTag().toString().matches("bigMedia(Narrow)?")) {
-                            root.setTag("xgpmBigMedia");
+                            root.setTag("xgpmMedia");
                             final Resources res = root.getResources();
                             final float density = res.getDisplayMetrics().density;
                             final ViewGroup.LayoutParams rootParams = root.getLayoutParams();
-                            final ImageButton queueButton = new ImageButton(root.getContext());
+                            // Views
+                            final ImageView queueButton = new ImageView(root.getContext());
                             final ListView queueLayout = new ListView(root.getContext());
+                            // Callbacks
                             final View.OnClickListener close = new View.OnClickListener() {
                                 @Override
                                 public void onClick(View v) {
@@ -73,7 +75,12 @@ public class TrackSelector {
                                         public void onAnimationEnd(Animator animation) {
                                             super.onAnimationEnd(animation);
                                             queueLayout.setVisibility(View.GONE);
-                                            queueButton.setImageDrawable(res.getDrawable(res.getIdentifier("ic_queue_music", "drawable", BuildConfig.APPLICATION_ID), null));
+                                            try {
+                                                Resources modRes = root.getContext().createPackageContext(BuildConfig.APPLICATION_ID, 0).getResources();
+                                                queueButton.setImageDrawable(modRes.getDrawable(modRes.getIdentifier("ic_queue_music", "drawable", BuildConfig.APPLICATION_ID), null));
+                                            } catch (PackageManager.NameNotFoundException e) {
+                                                log(e);
+                                            }
                                         }
                                     });
                                     anim.start();
@@ -120,22 +127,33 @@ public class TrackSelector {
                                         @Override
                                         public void onAnimationEnd(Animator animation) {
                                             super.onAnimationEnd(animation);
-                                            queueButton.setImageDrawable(res.getDrawable(res.getIdentifier("ic_close", "drawable", BuildConfig.APPLICATION_ID), null));
+                                            try {
+                                                Resources modRes = root.getContext().createPackageContext(BuildConfig.APPLICATION_ID, 0).getResources();
+                                                queueButton.setImageDrawable(modRes.getDrawable(modRes.getIdentifier("ic_close", "drawable", BuildConfig.APPLICATION_ID), null));
+                                            } catch (PackageManager.NameNotFoundException e) {
+                                                log(e);
+                                            }
+
                                         }
                                     });
                                     reveal.start();
                                 }
                             };
                             // Queue button
-                            queueButton.setImageDrawable(res.getDrawable(res.getIdentifier("ic_queue_music", "drawable", BuildConfig.APPLICATION_ID), null));
-                            queueButton.setColorFilter(Color.WHITE);
-                            queueButton.setBackground(null);
-                            RelativeLayout.LayoutParams buttonParams = new RelativeLayout.LayoutParams((int) (density * 48), (int) (density * 48));
+                            queueButton.setOnClickListener(toggle);
+                            try {
+                                Resources modRes = root.getContext().createPackageContext(BuildConfig.APPLICATION_ID, 0).getResources();
+                                queueButton.setImageDrawable(modRes.getDrawable(modRes.getIdentifier("ic_queue_music", "drawable", BuildConfig.APPLICATION_ID), null));
+                            } catch (PackageManager.NameNotFoundException e) {
+                                log(e);
+                            }
+                            RelativeLayout.LayoutParams buttonParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
                             buttonParams.addRule(RelativeLayout.ALIGN_PARENT_TOP, TRUE);
                             buttonParams.addRule(RelativeLayout.ALIGN_PARENT_RIGHT, TRUE);
                             buttonParams.addRule(RelativeLayout.ALIGN_PARENT_END, TRUE);
-                            queueButton.setLayoutParams(buttonParams);
-                            queueButton.setOnClickListener(toggle);
+                            buttonParams.topMargin = (int) (density * 6);
+                            buttonParams.rightMargin = (int) (density * 10);
+                            buttonParams.setMarginEnd(buttonParams.rightMargin);
                             // Prevent text overlapping queue button
                             ViewGroup.MarginLayoutParams titleContainerParams = (ViewGroup.MarginLayoutParams) root.getChildAt(1).getLayoutParams();
                             titleContainerParams.rightMargin = (int) (density * 48);
@@ -176,7 +194,7 @@ public class TrackSelector {
                             intent.setId(INTENT_VIEW_ID);
                             root.addView(intent);
                             root.addView(queueLayout, root.getChildCount(), new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-                            root.addView(queueButton, root.getChildCount());
+                            root.addView(queueButton, root.getChildCount(), buttonParams);
                         }
                     }
                 }
