@@ -1,0 +1,23 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="de.Maxr1998.xposed.mnts">
+
+    <application
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        tools:ignore="GoogleAppIndexingWarning">
+
+        <meta-data
+            android:name="xposedmodule"
+            android:value="true" />
+        <meta-data
+            android:name="xposeddescription"
+            android:value="Notification track selector base module" />
+        <meta-data
+            android:name="xposedminversion"
+            android:value="65" />
+    </application>
+
+</manifest>

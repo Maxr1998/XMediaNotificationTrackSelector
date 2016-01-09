@@ -1,0 +1,53 @@
+apply plugin: 'com.android.application'
+
+android {
+    signingConfigs {
+        main
+    }
+    compileSdkVersion 23
+    buildToolsVersion '23.0.2'
+    defaultConfig {
+        applicationId "de.Maxr1998.xposed.mnts"
+        minSdkVersion 21
+        targetSdkVersion 23
+        versionCode 1
+        versionName "1.0"
+    }
+    buildTypes {
+        release {
+            debuggable false
+            signingConfig signingConfigs.main
+        }
+        debug {
+            debuggable true
+            signingConfig signingConfigs.main
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_7
+        targetCompatibility JavaVersion.VERSION_1_7
+    }
+    lintOptions {
+        abortOnError false
+    }
+}
+
+def propFile = project.file("keyStore.properties")
+if (propFile.exists()) {
+    def props = new Properties()
+    props.load(new FileInputStream(propFile))
+    android.signingConfigs.main.storeFile project.file(props.keyStore)
+    android.signingConfigs.main.storePassword props.keyStorePassword
+    android.signingConfigs.main.keyAlias props.keyAlias
+    android.signingConfigs.main.keyPassword props.keyPassword
+}
+
+repositories {
+    flatDir {
+        dirs 'libs'
+    }
+}
+dependencies {
+    provided files('lib/XposedBridgeApi-20150213.jar')
+    compile project(':track-selector-lib')
+}
