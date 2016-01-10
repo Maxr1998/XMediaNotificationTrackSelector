@@ -2,11 +2,12 @@ package de.Maxr1998.xposed.mnts;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
-import android.app.PendingIntent;
-import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.graphics.Color;
+import android.support.v7.widget.DefaultItemAnimator;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewAnimationUtils;
@@ -14,16 +15,13 @@ import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.view.animation.Animation;
 import android.view.animation.Transformation;
-import android.widget.AdapterView;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.ListView;
 import android.widget.RelativeLayout;
 
 import java.lang.reflect.Method;
 
-import de.Maxr1998.xposed.mnts.view.CustomTrackAdapter;
 import de.Maxr1998.xposed.mnts.view.IntentView;
 import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
@@ -37,7 +35,6 @@ import static de.robv.android.xposed.XposedHelpers.findClass;
 public class TrackSelector {
 
     public static final int INTENT_VIEW_ID = 0x7f0f0200;
-    public static final String SEEK_COUNT_EXTRA = "new_queue_position";
     public static final String CURRENT_PLAYING_POSITION_EXTRA = "current_queue_position";
     public static final String TRACK_INFO_EXTRA = "track_data";
     public static final String REPLY_INTENT_EXTRA = "reply";
@@ -48,9 +45,9 @@ public class TrackSelector {
             findAndHookMethod("android.widget.RemoteViews", lPParam.classLoader, "performApply", View.class, ViewGroup.class, findClass("android.widget.RemoteViews.OnClickHandler", lPParam.classLoader), new XC_MethodHook() {
                 @Override
                 protected void beforeHookedMethod(final MethodHookParam param) throws Throwable {
-                    View v = (View) param.args[0];
-                    if (v instanceof RelativeLayout) {
-                        final RelativeLayout root = (RelativeLayout) v;
+                    View notificationView = (View) param.args[0];
+                    if (notificationView instanceof RelativeLayout) {
+                        final RelativeLayout root = (RelativeLayout) notificationView;
                         if ((root.getChildCount() == 4
                                 && (root.getChildAt(0) instanceof FrameLayout || root.getChildAt(0) instanceof ImageView)
                                 && root.getChildAt(1) instanceof LinearLayout
@@ -63,7 +60,7 @@ public class TrackSelector {
                             final ViewGroup.LayoutParams rootParams = root.getLayoutParams();
                             // Views
                             final ImageView queueButton = new ImageView(root.getContext());
-                            final ListView queueLayout = new ListView(root.getContext());
+                            final RecyclerView queueLayout = new RecyclerView(root.getContext());
                             // Callbacks
                             final View.OnClickListener close = new View.OnClickListener() {
                                 @Override
@@ -141,58 +138,54 @@ public class TrackSelector {
                             };
                             // Queue button
                             queueButton.setOnClickListener(toggle);
+                            queueButton.setVisibility(View.GONE);
                             try {
                                 Resources modRes = root.getContext().createPackageContext(BuildConfig.APPLICATION_ID, 0).getResources();
                                 queueButton.setImageDrawable(modRes.getDrawable(modRes.getIdentifier("ic_queue_music", "drawable", BuildConfig.APPLICATION_ID), null));
                             } catch (PackageManager.NameNotFoundException e) {
                                 log(e);
                             }
-                            RelativeLayout.LayoutParams buttonParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                            queueButton.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+                            RelativeLayout.LayoutParams buttonParams = new RelativeLayout.LayoutParams((int) (density * 48), (int) (density * 48));
                             buttonParams.addRule(RelativeLayout.ALIGN_PARENT_TOP, TRUE);
-                            buttonParams.addRule(RelativeLayout.ALIGN_PARENT_RIGHT, TRUE);
                             buttonParams.addRule(RelativeLayout.ALIGN_PARENT_END, TRUE);
-                            buttonParams.topMargin = (int) (density * 6);
-                            buttonParams.rightMargin = (int) (density * 10);
-                            buttonParams.setMarginEnd(buttonParams.rightMargin);
                             // Prevent text overlapping queue button
                             ViewGroup.MarginLayoutParams titleContainerParams = (ViewGroup.MarginLayoutParams) root.getChildAt(1).getLayoutParams();
                             titleContainerParams.rightMargin = (int) (density * 48);
                             titleContainerParams.setMarginEnd(titleContainerParams.rightMargin);
-                            // Track container
+                            // Track recycler container
+                            queueLayout.setLayoutManager(new LinearLayoutManager(queueLayout.getContext()));
+                            queueLayout.setItemAnimator(new DefaultItemAnimator());
                             queueLayout.setBackgroundColor(Color.WHITE);
                             queueLayout.setClickable(true);
                             queueLayout.setVisibility(View.GONE);
-                            queueLayout.setOnTouchListener(new View.OnTouchListener() {
+                            queueLayout.addOnItemTouchListener(new RecyclerView.OnItemTouchListener() {
                                 @Override
-                                public boolean onTouch(View v, MotionEvent event) {
-                                    ViewParent mScrollLayout = v.getParent().getParent().getParent().getParent();
+                                public boolean onInterceptTouchEvent(RecyclerView rv, MotionEvent e) {
+                                    ViewParent mScrollLayout = rv.getParent().getParent().getParent().getParent();
                                     mScrollLayout.requestDisallowInterceptTouchEvent(true);
                                     callMethod(mScrollLayout, "removeLongPressCallback");
                                     return false;
                                 }
-                            });
-                            queueLayout.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+
                                 @Override
-                                public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                                    int mCurrentPosition = ((CustomTrackAdapter) parent.getAdapter()).getCurrentPosition();
-                                    if (position != mCurrentPosition) {
-                                        Intent intent = new Intent();
-                                        intent.putExtra(SEEK_COUNT_EXTRA, position - mCurrentPosition);
-                                        try {
-                                            ((CustomTrackAdapter) parent.getAdapter()).reply().send(view.getContext(), 0, intent);
-                                        } catch (PendingIntent.CanceledException e) {
-                                            log(e);
-                                        }
-                                    }
-                                    close.onClick(view);
+                                public void onTouchEvent(RecyclerView rv, MotionEvent e) {
+
+                                }
+
+                                @Override
+                                public void onRequestDisallowInterceptTouchEvent(boolean disallowIntercept) {
+
                                 }
                             });
-                            IntentView intent = new IntentView(root.getContext());
-                            intent.setChildList(queueLayout);
-                            intent.setVisibility(View.GONE);
+                            queueLayout.setTag(42 << 24, close);
+                            // Intent view as pipe to transfer data
+                            IntentView intentView = new IntentView(root.getContext());
+                            intentView.setShowButton(queueButton);
+                            intentView.setRecyclerView(queueLayout);
                             //noinspection ResourceType
-                            intent.setId(INTENT_VIEW_ID);
-                            root.addView(intent);
+                            intentView.setId(INTENT_VIEW_ID);
+                            root.addView(intentView);
                             root.addView(queueLayout, root.getChildCount(), new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
                             root.addView(queueButton, root.getChildCount(), buttonParams);
                         }

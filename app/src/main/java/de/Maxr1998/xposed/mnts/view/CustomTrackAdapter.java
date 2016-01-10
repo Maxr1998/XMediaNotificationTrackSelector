@@ -1,140 +1,111 @@
 package de.Maxr1998.xposed.mnts.view;
 
-import android.annotation.TargetApi;
 import android.app.PendingIntent;
-import android.content.Context;
-import android.content.res.ColorStateList;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.content.res.Resources;
 import android.graphics.Bitmap;
-import android.graphics.Color;
 import android.graphics.Typeface;
-import android.graphics.drawable.RippleDrawable;
-import android.graphics.drawable.ShapeDrawable;
-import android.graphics.drawable.shapes.RectShape;
-import android.os.Build;
 import android.os.Bundle;
+import android.support.v7.widget.RecyclerView;
 import android.text.SpannableString;
-import android.text.TextUtils;
 import android.text.style.StyleSpan;
-import android.util.TypedValue;
-import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.TextView;
+
+import org.xmlpull.v1.XmlPullParser;
 
 import java.util.List;
 
 import de.Maxr1998.trackselectorlib.TrackItem;
+import de.Maxr1998.xposed.mnts.BuildConfig;
 
-public class CustomTrackAdapter extends ArrayAdapter<Bundle> {
+import static de.robv.android.xposed.XposedBridge.log;
 
+public class CustomTrackAdapter extends RecyclerView.Adapter<CustomTrackAdapter.TrackViewHolder> {
+
+    public static final String SEEK_COUNT_EXTRA = "new_queue_position";
+
+    public View.OnClickListener mCloseHandler;
+
+    private List<Bundle> mList;
     private int mCurrentPosition = 0;
     private PendingIntent mReply;
 
-    @SuppressWarnings("unused")
-    public CustomTrackAdapter(Context context, int position, PendingIntent replyIntent) {
-        super(context, 0);
+    public CustomTrackAdapter(List<Bundle> list, int position, PendingIntent replyIntent) {
+        mList = list;
         mCurrentPosition = position;
         mReply = replyIntent;
     }
 
-    public CustomTrackAdapter(Context context, int position, List<Bundle> list, PendingIntent replyIntent) {
-        super(context, 0, list);
-        mCurrentPosition = position;
-        mReply = replyIntent;
-    }
-
-    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
     @Override
-    public View getView(int position, View convertView, ViewGroup parent) {
-        TrackItem item = new TrackItem(getItem(position));
-        final float density = getContext().getResources().getDisplayMetrics().density;
-        final int dp48 = (int) (density * 48);
-        LinearLayout trackLayout = new LinearLayout(getContext());
-        trackLayout.setOrientation(LinearLayout.HORIZONTAL);
-        trackLayout.setGravity(Gravity.CENTER_VERTICAL);
-        trackLayout.setMinimumHeight(dp48);
-        ShapeDrawable mask = new ShapeDrawable(new RectShape());
-        mask.getPaint().setColor(Color.WHITE);
-        trackLayout.setBackground(new RippleDrawable(ColorStateList.valueOf(Color.parseColor("#1f000000")), null, mask));
-        trackLayout.setPadding(dp48 / 4, (int) (density * 6), dp48, (int) (density * 6));
-        LinearLayout.LayoutParams trackLayoutParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        trackLayout.setLayoutParams(trackLayoutParams);
+    public TrackViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+        Resources res;
+        try {
+            res = parent.getContext().getPackageManager().getResourcesForApplication(BuildConfig.APPLICATION_ID);
+        } catch (PackageManager.NameNotFoundException e) {
+            res = parent.getContext().getResources();
+        }
+        XmlPullParser parser = res.getLayout(res.getIdentifier("track_item_view", "layout", BuildConfig.APPLICATION_ID));
+        return new TrackViewHolder(LayoutInflater.from(parent.getContext()).inflate(parser, parent, false));
+    }
 
-        // Album art
-        ImageView albumArt = new ImageView(getContext());
+    @Override
+    public void onBindViewHolder(final TrackViewHolder holder, final int position) {
+        TrackItem item = new TrackItem(mList.get(position));
         Bitmap art = item.getArt();
         if (art != null) {
-            albumArt.setImageBitmap(art);
+            holder.art.setImageBitmap(art);
+        } else {
+            holder.art.setImageDrawable(null);
         }
-        albumArt.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        LinearLayout.LayoutParams imageParams = new LinearLayout.LayoutParams(dp48, ViewGroup.LayoutParams.MATCH_PARENT);
-        imageParams.rightMargin = (int) (density * 6);
-        imageParams.setMarginEnd(imageParams.rightMargin);
-
-        // Titles
-        LinearLayout titlesLayout = new LinearLayout(getContext());
-        titlesLayout.setOrientation(LinearLayout.VERTICAL);
-        titlesLayout.setGravity(Gravity.CENTER | Gravity.START);
-        LinearLayout.LayoutParams titlesLayoutParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1);
-        titlesLayoutParams.leftMargin = dp48 / 4;
-        titlesLayoutParams.setMarginStart(titlesLayoutParams.leftMargin);
-
-        TextView titleText = new TextView(getContext());
-        String title = item.getTitle();
-        titleText.setText(position == mCurrentPosition ? getBoldString(title) : title);
-        titleText.setTextColor(Color.parseColor("#ff212121"));
-        titleText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
-        titleText.setEllipsize(TextUtils.TruncateAt.END);
-        titleText.setSingleLine();
-        titleText.setLineSpacing(0, titleText.getLineSpacingMultiplier());
-        LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-
-        TextView subtitleText = new TextView(getContext());
-        subtitleText.setText(item.getArtist());
-        subtitleText.setTextColor(Color.parseColor("#ff616161"));
-        subtitleText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-        subtitleText.setEllipsize(TextUtils.TruncateAt.END);
-        subtitleText.setSingleLine();
-        titleText.setLineSpacing(0, titleText.getLineSpacingMultiplier());
-        LinearLayout.LayoutParams subtitleParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-
-        titlesLayout.addView(titleText, titleParams);
-        titlesLayout.addView(subtitleText, subtitleParams);
-
-        // Duration
-        TextView duration = new TextView(getContext());
-        duration.setText(item.getDuration());
-        duration.setTextColor(Color.parseColor("#ff616161"));
-        duration.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
-        titleText.setEllipsize(TextUtils.TruncateAt.END);
-        duration.setSingleLine();
-        titleText.setLineSpacing(0, titleText.getLineSpacingMultiplier());
-        duration.setGravity(Gravity.CENTER_VERTICAL);
-        LinearLayout.LayoutParams durationParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT);
-        durationParams.leftMargin = dp48 / 4;
-        durationParams.setMarginStart(durationParams.leftMargin);
-
-        // Add views
-        trackLayout.addView(albumArt, imageParams);
-        trackLayout.addView(titlesLayout, titlesLayoutParams);
-        trackLayout.addView(duration, durationParams);
-        return trackLayout;
+        holder.title.setText(position == mCurrentPosition ? getBoldString(item.getTitle()) : item.getTitle());
+        holder.artist.setText(item.getArtist());
+        holder.duration.setText(item.getDuration());
+        holder.itemView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent();
+                intent.putExtra(SEEK_COUNT_EXTRA, position - mCurrentPosition);
+                try {
+                    mReply.send(holder.itemView.getContext(), 0, intent);
+                } catch (PendingIntent.CanceledException e) {
+                    log(e);
+                }
+                if (mCloseHandler != null) {
+                    mCloseHandler.onClick(v);
+                }
+            }
+        });
     }
 
-    public int getCurrentPosition() {
-        return mCurrentPosition;
-    }
-
-    public PendingIntent reply() {
-        return mReply;
+    @Override
+    public int getItemCount() {
+        return mList.size();
     }
 
     private SpannableString getBoldString(String toBold) {
         SpannableString sp = new SpannableString(toBold);
         sp.setSpan(new StyleSpan(Typeface.BOLD), 0, sp.length(), 0);
         return sp;
+    }
+
+    public static class TrackViewHolder extends RecyclerView.ViewHolder {
+
+        public ImageView art;
+        public TextView title;
+        public TextView artist;
+        public TextView duration;
+
+        public TrackViewHolder(View view) {
+            super(view);
+            art = (ImageView) itemView.findViewById(android.R.id.icon);
+            title = (TextView) itemView.findViewById(android.R.id.title);
+            artist = (TextView) itemView.findViewById(android.R.id.text1);
+            duration = (TextView) itemView.findViewById(android.R.id.text2);
+        }
     }
 }

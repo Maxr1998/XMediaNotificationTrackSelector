@@ -50,4 +50,5 @@ repositories {
 dependencies {
     provided files('lib/XposedBridgeApi-20150213.jar')
     compile project(':track-selector-lib')
+    compile 'com.android.support:recyclerview-v7:23.1.1'
 }
