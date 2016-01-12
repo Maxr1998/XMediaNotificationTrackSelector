@@ -32,6 +32,9 @@ public class IntentView extends FrameLayout {
 
     @SuppressWarnings("unused")
     public void resolveIntent(Intent intent) {
+        if (!intent.hasExtra(TRACK_INFO_EXTRA)) {
+            return;
+        }
         if (mButton != null) {
             mButton.setVisibility(VISIBLE);
         }
