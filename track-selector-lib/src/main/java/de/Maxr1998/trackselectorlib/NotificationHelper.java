@@ -24,6 +24,15 @@ public final class NotificationHelper {
     private NotificationHelper() {
     }
 
+    public static boolean isSupported(Notification Notification) {
+        try {
+            Notification.bigContentView.setIntent(INTENT_VIEW_ID, "resolveIntent", new Intent());
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
     /**
      * Method which inserts your data into your {@link android.app.Notification.MediaStyle} {@link Notification} object
      *
