@@ -12,7 +12,7 @@ repositories {
 }
 
 dependencies {
-    compile 'de.Maxr1998:track-selector-lib:1.0'
+    compile 'de.Maxr1998:track-selector-lib:1.1'
 }
 ```
 
