@@ -24,9 +24,9 @@ public final class NotificationHelper {
     private NotificationHelper() {
     }
 
-    public static boolean isSupported(Notification Notification) {
+    public static boolean isSupported(Notification notification) {
         try {
-            Notification.bigContentView.setIntent(INTENT_VIEW_ID, "resolveIntent", new Intent());
+            notification.bigContentView.setIntent(INTENT_VIEW_ID, "resolveIntent", new Intent());
             return true;
         } catch (Throwable t) {
             return false;
