@@ -53,7 +53,7 @@ public class TrackSelector {
                                 && root.getChildAt(1) instanceof LinearLayout
                                 && root.getChildAt(2) instanceof LinearLayout
                                 && root.getChildAt(3) instanceof ImageView)
-                                || root.getTag().toString().matches("bigMedia(Narrow)?")) {
+                                || (root.getTag() != null && root.getTag().toString().matches("bigMedia(Narrow)?"))) {
                             root.setTag("xgpmMedia");
                             final Resources res = root.getResources();
                             final float density = res.getDisplayMetrics().density;
