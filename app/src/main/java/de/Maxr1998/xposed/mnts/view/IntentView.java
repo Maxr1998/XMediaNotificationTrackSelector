@@ -39,9 +39,8 @@ public class IntentView extends FrameLayout {
             mButton.setVisibility(VISIBLE);
         }
         if (mRecyclerView != null) {
-            Bundle extras = intent.getExtras();
-            CustomTrackAdapter ct = new CustomTrackAdapter(extras.<Bundle>getParcelableArrayList(TRACK_INFO_EXTRA),
-                    extras.getInt(CURRENT_PLAYING_POSITION_EXTRA), (PendingIntent) extras.getParcelable(REPLY_INTENT_EXTRA));
+            CustomTrackAdapter ct = new CustomTrackAdapter(intent.<Bundle>getParcelableArrayListExtra(TRACK_INFO_EXTRA),
+                    intent.getIntExtra(CURRENT_PLAYING_POSITION_EXTRA, 0), (PendingIntent) intent.getParcelableExtra(REPLY_INTENT_EXTRA));
             ct.mCloseHandler = (OnClickListener) mRecyclerView.getTag(42 << 24);
             mRecyclerView.setAdapter(ct);
         }
