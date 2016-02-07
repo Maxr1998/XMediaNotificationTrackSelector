@@ -44,7 +44,7 @@ public class IntentView extends FrameLayout {
                     (PendingIntent) intent.getParcelableExtra(REPLY_INTENT_EXTRA));
             ct.mCloseHandler = (OnClickListener) mRecyclerView.getTag(42 << 24);
             mRecyclerView.setAdapter(ct);
-            mRecyclerView.scrollToPosition(position);
+            mRecyclerView.scrollToPosition(position > 0 ? position - 1 : position);
         }
     }
 }
