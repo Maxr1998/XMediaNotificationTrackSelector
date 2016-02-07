@@ -54,7 +54,7 @@ public class CustomTrackAdapter extends RecyclerView.Adapter<CustomTrackAdapter.
     }
 
     @Override
-    public void onBindViewHolder(final TrackViewHolder holder, final int position) {
+    public void onBindViewHolder(final TrackViewHolder holder, int position) {
         TrackItem item = new TrackItem(mList.get(position));
         Bitmap art = item.getArt();
         if (art != null) {
@@ -69,7 +69,7 @@ public class CustomTrackAdapter extends RecyclerView.Adapter<CustomTrackAdapter.
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent();
-                intent.putExtra(SEEK_COUNT_EXTRA, position - mCurrentPosition);
+                intent.putExtra(SEEK_COUNT_EXTRA, holder.getAdapterPosition() - mCurrentPosition);
                 try {
                     mReply.send(holder.itemView.getContext(), 0, intent);
                 } catch (PendingIntent.CanceledException e) {
