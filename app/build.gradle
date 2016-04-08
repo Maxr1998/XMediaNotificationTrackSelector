@@ -5,7 +5,7 @@ android {
         main
     }
     compileSdkVersion 23
-    buildToolsVersion '23.0.2'
+    buildToolsVersion '24.0.0 rc2'
     defaultConfig {
         applicationId "de.Maxr1998.xposed.mnts"
         minSdkVersion 21
@@ -50,5 +50,5 @@ repositories {
 dependencies {
     provided files('lib/XposedBridgeApi-20150213.jar')
     compile project(':track-selector-lib')
-    compile 'com.android.support:recyclerview-v7:23.1.1'
+    compile 'com.android.support:recyclerview-v7:23.2.1'
 }
