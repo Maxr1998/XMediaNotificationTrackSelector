@@ -43,12 +43,14 @@ if (propFile.exists()) {
 }
 
 repositories {
+    jcenter()
     flatDir {
         dirs 'libs'
     }
 }
 dependencies {
-    provided files('lib/XposedBridgeApi-20150213.jar')
+    provided 'de.robv.android.xposed:api:81'
+    provided 'de.robv.android.xposed:api:81:sources'
     compile project(':track-selector-lib')
     compile 'com.android.support:recyclerview-v7:23.2.1'
 }
