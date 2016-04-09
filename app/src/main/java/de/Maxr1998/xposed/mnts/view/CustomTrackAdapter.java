@@ -29,8 +29,7 @@ public class CustomTrackAdapter extends RecyclerView.Adapter<CustomTrackAdapter.
 
     public static final String SEEK_COUNT_EXTRA = "new_queue_position";
 
-    public View.OnClickListener mCloseHandler;
-
+    public Runnable mCloseRunnable;
     private List<Bundle> mList;
     private int mCurrentPosition = 0;
     private PendingIntent mReply;
@@ -75,8 +74,8 @@ public class CustomTrackAdapter extends RecyclerView.Adapter<CustomTrackAdapter.
                 } catch (PendingIntent.CanceledException e) {
                     log(e);
                 }
-                if (mCloseHandler != null) {
-                    mCloseHandler.onClick(v);
+                if (mCloseRunnable != null) {
+                    mCloseRunnable.run();
                 }
             }
         });

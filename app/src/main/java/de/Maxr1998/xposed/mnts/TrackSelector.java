@@ -2,6 +2,7 @@ package de.Maxr1998.xposed.mnts;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
+import android.content.Context;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.graphics.Color;
@@ -25,6 +26,7 @@ import java.lang.reflect.Method;
 import de.Maxr1998.xposed.mnts.view.IntentView;
 import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
+import de.robv.android.xposed.callbacks.XCallback;
 
 import static android.widget.RelativeLayout.TRUE;
 import static de.robv.android.xposed.XposedBridge.log;
@@ -42,7 +44,7 @@ public class TrackSelector {
     public static void initUI(final XC_LoadPackage.LoadPackageParam lPParam) {
         try {
             // Edit notification view
-            findAndHookMethod("android.widget.RemoteViews", lPParam.classLoader, "performApply", View.class, ViewGroup.class, findClass("android.widget.RemoteViews.OnClickHandler", lPParam.classLoader), new XC_MethodHook() {
+            findAndHookMethod("android.widget.RemoteViews", lPParam.classLoader, "performApply", View.class, ViewGroup.class, findClass("android.widget.RemoteViews.OnClickHandler", lPParam.classLoader), new XC_MethodHook(XCallback.PRIORITY_HIGHEST) {
                 @Override
                 protected void beforeHookedMethod(final MethodHookParam param) throws Throwable {
                     View notificationView = (View) param.args[0];
@@ -55,33 +57,34 @@ public class TrackSelector {
                                 && root.getChildAt(3) instanceof ImageView)
                                 || (root.getTag() != null && root.getTag().toString().matches("bigMedia(Narrow)?"))) {
                             root.setTag("xgpmMedia");
+                            // final vars
+                            final Context mContext = root.getContext();
                             final Resources res = root.getResources();
                             final float density = res.getDisplayMetrics().density;
                             final ViewGroup.LayoutParams rootParams = root.getLayoutParams();
                             // Views
-                            final ImageView queueButton = new ImageView(root.getContext());
-                            final RecyclerView queueLayout = new RecyclerView(root.getContext());
-                            // Callbacks
-                            final View.OnClickListener close = new View.OnClickListener() {
+                            final ImageView queueButton = new ImageView(mContext);
+                            final RecyclerView queueRecyclerLayout = new RecyclerView(mContext);
+                            // Close callback
+                            final Runnable closeRunnable = new Runnable() {
                                 @Override
-                                public void onClick(View v) {
+                                public void run() {
                                     // Close
-                                    Animator anim = ViewAnimationUtils.createCircularReveal(queueLayout, (int) (queueButton.getX() + queueButton.getWidth() / 2), (int) (queueButton.getY() + queueButton.getHeight() / 2), density * 416, density * 24);
-                                    anim.addListener(new AnimatorListenerAdapter() {
+                                    final Animator revealCloseAnimation = ViewAnimationUtils.createCircularReveal(queueRecyclerLayout, (int) (queueButton.getX() + queueButton.getWidth() / 2), (int) (queueButton.getY() + queueButton.getHeight() / 2), density * 500, density * 24);
+                                    revealCloseAnimation.addListener(new AnimatorListenerAdapter() {
                                         @Override
                                         public void onAnimationEnd(Animator animation) {
-                                            super.onAnimationEnd(animation);
-                                            queueLayout.setVisibility(View.GONE);
+                                            queueRecyclerLayout.setVisibility(View.GONE);
                                             try {
-                                                Resources modRes = root.getContext().createPackageContext(BuildConfig.APPLICATION_ID, 0).getResources();
+                                                Resources modRes = mContext.createPackageContext(BuildConfig.APPLICATION_ID, 0).getResources();
                                                 queueButton.setImageDrawable(modRes.getDrawable(modRes.getIdentifier("ic_queue_music", "drawable", BuildConfig.APPLICATION_ID), null));
                                             } catch (PackageManager.NameNotFoundException e) {
                                                 log(e);
                                             }
                                         }
                                     });
-                                    anim.start();
-                                    Animation collapse = new Animation() {
+                                    revealCloseAnimation.start();
+                                    final Animation collapseAnimation = new Animation() {
                                         @Override
                                         protected void applyTransformation(float interpolatedTime, Transformation t) {
                                             rootParams.height = (int) (density * 128 * (2f - interpolatedTime));
@@ -93,18 +96,20 @@ public class TrackSelector {
                                             return true;
                                         }
                                     };
-                                    collapse.setDuration(300);
-                                    root.startAnimation(collapse);
+                                    collapseAnimation.setDuration(200);
+                                    collapseAnimation.setInterpolator(mContext, android.R.interpolator.accelerate_decelerate);
+                                    root.startAnimation(collapseAnimation);
                                 }
                             };
-                            final View.OnClickListener toggle = new View.OnClickListener() {
+                            // Queue button
+                            queueButton.setOnClickListener(new View.OnClickListener() {
                                 @Override
                                 public void onClick(View v) {
-                                    if (queueLayout.getVisibility() == View.VISIBLE) {
-                                        close.onClick(v);
+                                    if (queueRecyclerLayout.getVisibility() == View.VISIBLE) {
+                                        closeRunnable.run();
                                         return;
                                     }
-                                    Animation expand = new Animation() {
+                                    final Animation expandAnimation = new Animation() {
                                         @Override
                                         protected void applyTransformation(float interpolatedTime, Transformation t) {
                                             rootParams.height = (int) (density * 128 * (1f + interpolatedTime));
@@ -116,16 +121,21 @@ public class TrackSelector {
                                             return true;
                                         }
                                     };
-                                    expand.setDuration(300);
-                                    root.startAnimation(expand);
-                                    queueLayout.setVisibility(View.VISIBLE);
-                                    Animator reveal = ViewAnimationUtils.createCircularReveal(queueLayout, (int) (v.getX() + v.getWidth() / 2), (int) (v.getY() + v.getHeight() / 2), density * 24, density * 416);
-                                    reveal.addListener(new AnimatorListenerAdapter() {
+                                    expandAnimation.setDuration(200);
+                                    expandAnimation.setInterpolator(mContext, android.R.interpolator.accelerate_decelerate);
+                                    root.postDelayed(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            root.startAnimation(expandAnimation);
+                                        }
+                                    }, 100);
+                                    queueRecyclerLayout.setVisibility(View.VISIBLE);
+                                    final Animator revealAnimation = ViewAnimationUtils.createCircularReveal(queueRecyclerLayout, (int) (v.getX() + v.getWidth() / 2), (int) (v.getY() + v.getHeight() / 2), density * 24, density * 500);
+                                    revealAnimation.addListener(new AnimatorListenerAdapter() {
                                         @Override
                                         public void onAnimationEnd(Animator animation) {
-                                            super.onAnimationEnd(animation);
                                             try {
-                                                Resources modRes = root.getContext().createPackageContext(BuildConfig.APPLICATION_ID, 0).getResources();
+                                                Resources modRes = mContext.createPackageContext(BuildConfig.APPLICATION_ID, 0).getResources();
                                                 queueButton.setImageDrawable(modRes.getDrawable(modRes.getIdentifier("ic_close", "drawable", BuildConfig.APPLICATION_ID), null));
                                             } catch (PackageManager.NameNotFoundException e) {
                                                 log(e);
@@ -133,14 +143,13 @@ public class TrackSelector {
 
                                         }
                                     });
-                                    reveal.start();
+                                    revealAnimation.setDuration(400);
+                                    revealAnimation.start();
                                 }
-                            };
-                            // Queue button
-                            queueButton.setOnClickListener(toggle);
+                            });
                             queueButton.setVisibility(View.GONE);
                             try {
-                                Resources modRes = root.getContext().createPackageContext(BuildConfig.APPLICATION_ID, 0).getResources();
+                                Resources modRes = mContext.createPackageContext(BuildConfig.APPLICATION_ID, 0).getResources();
                                 queueButton.setImageDrawable(modRes.getDrawable(modRes.getIdentifier("ic_queue_music", "drawable", BuildConfig.APPLICATION_ID), null));
                             } catch (PackageManager.NameNotFoundException e) {
                                 log(e);
@@ -154,15 +163,18 @@ public class TrackSelector {
                             titleContainerParams.rightMargin = (int) (density * 48);
                             titleContainerParams.setMarginEnd(titleContainerParams.rightMargin);
                             // Track recycler container
-                            queueLayout.setLayoutManager(new LinearLayoutManager(queueLayout.getContext()));
-                            queueLayout.setItemAnimator(new DefaultItemAnimator());
-                            queueLayout.setBackgroundColor(Color.WHITE);
-                            queueLayout.setClickable(true);
-                            queueLayout.setVisibility(View.GONE);
-                            queueLayout.addOnItemTouchListener(new RecyclerView.OnItemTouchListener() {
+                            queueRecyclerLayout.setLayoutManager(new LinearLayoutManager(mContext));
+                            queueRecyclerLayout.setItemAnimator(new DefaultItemAnimator());
+                            queueRecyclerLayout.setBackgroundColor(Color.WHITE);
+                            queueRecyclerLayout.setClickable(true);
+                            queueRecyclerLayout.setVisibility(View.GONE);
+                            queueRecyclerLayout.addOnItemTouchListener(new RecyclerView.OnItemTouchListener() {
                                 @Override
                                 public boolean onInterceptTouchEvent(RecyclerView rv, MotionEvent e) {
-                                    ViewParent mScrollLayout = rv.getParent().getParent().getParent().getParent();
+                                    ViewParent mScrollLayout = getStackScrollLayout(rv);
+                                    if (mScrollLayout == null) {
+                                        return false;
+                                    }
                                     mScrollLayout.requestDisallowInterceptTouchEvent(true);
                                     callMethod(mScrollLayout, "removeLongPressCallback");
                                     return false;
@@ -170,23 +182,21 @@ public class TrackSelector {
 
                                 @Override
                                 public void onTouchEvent(RecyclerView rv, MotionEvent e) {
-
                                 }
 
                                 @Override
                                 public void onRequestDisallowInterceptTouchEvent(boolean disallowIntercept) {
-
                                 }
                             });
-                            queueLayout.setTag(42 << 24, close);
+                            queueRecyclerLayout.setTag(42 << 24, closeRunnable);
                             // Intent view as pipe to transfer data
-                            IntentView intentView = new IntentView(root.getContext());
+                            IntentView intentView = new IntentView(mContext);
                             intentView.setShowButton(queueButton);
-                            intentView.setRecyclerView(queueLayout);
+                            intentView.setRecyclerView(queueRecyclerLayout);
                             //noinspection ResourceType
                             intentView.setId(INTENT_VIEW_ID);
                             root.addView(intentView);
-                            root.addView(queueLayout, root.getChildCount(), new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+                            root.addView(queueRecyclerLayout, root.getChildCount(), new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
                             root.addView(queueButton, root.getChildCount(), buttonParams);
                         }
                     }
@@ -204,5 +214,16 @@ public class TrackSelector {
         } catch (Throwable t) {
             log(t);
         }
+    }
+
+    private static ViewParent getStackScrollLayout(View initial) {
+        ViewParent current = initial.getParent();
+        for (int depth = 0; depth < 8; depth++) {
+            if (current.getClass().getName().contains("NotificationStackScrollLayout")) {
+                return current;
+            }
+            current = current.getParent();
+        }
+        return null;
     }
 }
