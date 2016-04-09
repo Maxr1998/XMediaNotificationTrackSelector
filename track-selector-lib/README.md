@@ -1,8 +1,8 @@
-#Library
+# Library
 
 This library helps third-party music player devs to use the track selector of the mod.
 
-##Installation
+## Installation
 Modify your  `build.gradle` like this:
 
 ```Groovy
@@ -16,7 +16,7 @@ dependencies {
 }
 ```
 
-##Usage
+## Usage
 ```Java
 public class MusicService extends Service {
   …
