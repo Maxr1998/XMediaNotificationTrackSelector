@@ -24,9 +24,9 @@ public class TrackSelectorView extends RecyclerView {
     private final View mButton;
     private Runnable mCloseRunnable;
 
-    public TrackSelectorView(Context c, View v) {
-        super(c);
-        mButton = v;
+    public TrackSelectorView(Context context, View button) {
+        super(context);
+        mButton = button;
         // Setup
         setLayoutManager(new LinearLayoutManager(getContext()));
         setItemAnimator(new DefaultItemAnimator());
@@ -67,10 +67,8 @@ public class TrackSelectorView extends RecyclerView {
         }
         mButton.setVisibility(VISIBLE);
         int position = intent.getIntExtra(CURRENT_PLAYING_POSITION_EXTRA, 0);
-        CustomTrackAdapter ct = new CustomTrackAdapter(intent.<Bundle>getParcelableArrayListExtra(TRACK_INFO_EXTRA), position,
-                (PendingIntent) intent.getParcelableExtra(REPLY_INTENT_EXTRA));
-        ct.mCloseRunnable = mCloseRunnable;
-        setAdapter(ct);
+        setAdapter(new CustomTrackAdapter(intent.<Bundle>getParcelableArrayListExtra(TRACK_INFO_EXTRA),
+                position, (PendingIntent) intent.getParcelableExtra(REPLY_INTENT_EXTRA), mCloseRunnable));
         scrollToPosition(position > 0 ? position - 1 : position);
     }
 

@@ -27,18 +27,19 @@ public class CustomTrackAdapter extends RecyclerView.Adapter<CustomTrackAdapter.
 
     public static final String SEEK_COUNT_EXTRA = "new_queue_position";
 
-    public Runnable mCloseRunnable;
-    private List<Bundle> mList;
-    private int mCurrentPosition;
-    private PendingIntent mReply;
+    private final List<Bundle> mList;
+    private final int mCurrentPosition;
+    private final PendingIntent mReply;
+    private final Runnable mCloseRunnable;
 
     private int layoutId;
     private Resources res;
 
-    public CustomTrackAdapter(List<Bundle> list, int position, PendingIntent replyIntent) {
+    public CustomTrackAdapter(List<Bundle> list, int position, PendingIntent replyIntent, Runnable closeRunnable) {
         mList = list;
         mCurrentPosition = position;
         mReply = replyIntent;
+        mCloseRunnable = closeRunnable;
     }
 
     @Override
