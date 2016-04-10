@@ -16,8 +16,6 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import org.xmlpull.v1.XmlPullParser;
-
 import java.util.List;
 
 import de.Maxr1998.trackselectorlib.TrackItem;
@@ -31,8 +29,11 @@ public class CustomTrackAdapter extends RecyclerView.Adapter<CustomTrackAdapter.
 
     public Runnable mCloseRunnable;
     private List<Bundle> mList;
-    private int mCurrentPosition = 0;
+    private int mCurrentPosition;
     private PendingIntent mReply;
+
+    private int layoutId;
+    private Resources res;
 
     public CustomTrackAdapter(List<Bundle> list, int position, PendingIntent replyIntent) {
         mList = list;
@@ -42,14 +43,15 @@ public class CustomTrackAdapter extends RecyclerView.Adapter<CustomTrackAdapter.
 
     @Override
     public TrackViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        Resources res;
-        try {
-            res = parent.getContext().getPackageManager().getResourcesForApplication(BuildConfig.APPLICATION_ID);
-        } catch (PackageManager.NameNotFoundException e) {
-            res = parent.getContext().getResources();
+        if (res == null || layoutId == 0) {
+            try {
+                res = parent.getContext().getPackageManager().getResourcesForApplication(BuildConfig.APPLICATION_ID);
+            } catch (PackageManager.NameNotFoundException e) {
+                res = parent.getContext().getResources();
+            }
+            layoutId = res.getIdentifier("track_item_view", "layout", BuildConfig.APPLICATION_ID);
         }
-        XmlPullParser parser = res.getLayout(res.getIdentifier("track_item_view", "layout", BuildConfig.APPLICATION_ID));
-        return new TrackViewHolder(LayoutInflater.from(parent.getContext()).inflate(parser, parent, false));
+        return new TrackViewHolder(LayoutInflater.from(parent.getContext()).inflate(res.getLayout(layoutId), parent, false));
     }
 
     @Override
