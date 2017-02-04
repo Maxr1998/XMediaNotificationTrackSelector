@@ -67,7 +67,7 @@ public class TrackSelectorView extends RecyclerView {
         }
         mButton.setVisibility(VISIBLE);
         int position = intent.getIntExtra(CURRENT_PLAYING_POSITION_EXTRA, 0);
-        setAdapter(new CustomTrackAdapter(intent.<Bundle>getParcelableArrayListExtra(TRACK_INFO_EXTRA),
+        setAdapter(new CustomTrackAdapter(getContext(), intent.<Bundle>getParcelableArrayListExtra(TRACK_INFO_EXTRA),
                 position, (PendingIntent) intent.getParcelableExtra(REPLY_INTENT_EXTRA), mCloseRunnable));
         scrollToPosition(position > 0 ? position - 1 : position);
     }

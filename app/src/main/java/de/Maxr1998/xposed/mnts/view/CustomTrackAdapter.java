@@ -1,12 +1,16 @@
 package de.Maxr1998.xposed.mnts.view;
 
 import android.app.PendingIntent;
+import android.content.ContentResolver;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.Typeface;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.support.v7.widget.RecyclerView;
 import android.text.SpannableString;
 import android.text.style.StyleSpan;
@@ -16,6 +20,9 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import java.io.IOException;
+import java.lang.ref.WeakReference;
+import java.util.HashMap;
 import java.util.List;
 
 import de.Maxr1998.trackselectorlib.TrackItem;
@@ -27,6 +34,7 @@ public class CustomTrackAdapter extends RecyclerView.Adapter<CustomTrackAdapter.
 
     public static final String SEEK_COUNT_EXTRA = "new_queue_position";
 
+    private final ContentResolver contentResolver;
     private final List<Bundle> mList;
     private final int mCurrentPosition;
     private final PendingIntent mReply;
@@ -35,7 +43,10 @@ public class CustomTrackAdapter extends RecyclerView.Adapter<CustomTrackAdapter.
     private int layoutId;
     private Resources res;
 
-    public CustomTrackAdapter(List<Bundle> list, int position, PendingIntent replyIntent, Runnable closeRunnable) {
+    private HashMap<Uri, WeakReference<Bitmap>> bitmapCache = new HashMap<>();
+
+    public CustomTrackAdapter(Context context, List<Bundle> list, int position, PendingIntent replyIntent, Runnable closeRunnable) {
+        contentResolver = context.getContentResolver();
         mList = list;
         mCurrentPosition = position;
         mReply = replyIntent;
@@ -59,8 +70,21 @@ public class CustomTrackAdapter extends RecyclerView.Adapter<CustomTrackAdapter.
     public void onBindViewHolder(final TrackViewHolder holder, int position) {
         TrackItem item = new TrackItem(mList.get(position));
         Bitmap art = item.getArt();
+        Uri uri = item.getArtUri();
         if (art != null) {
             holder.art.setImageBitmap(art);
+        } else if (uri != null) {
+            try {
+                WeakReference<Bitmap> cachedReference = bitmapCache.get(uri);
+                if (cachedReference == null || (art = cachedReference.get()) == null) {
+                    art = MediaStore.Images.Media.getBitmap(contentResolver, uri);
+                    bitmapCache.put(uri, new WeakReference<>(art));
+                }
+                holder.art.setImageBitmap(art);
+            } catch (IOException e) {
+                log(e);
+                holder.art.setImageDrawable(null);
+            }
         } else {
             holder.art.setImageDrawable(null);
         }

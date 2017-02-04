@@ -1,6 +1,7 @@
 package de.Maxr1998.trackselectorlib;
 
 import android.graphics.Bitmap;
+import android.net.Uri;
 import android.os.Bundle;
 
 /**
@@ -20,6 +21,21 @@ public class TrackItem {
 
     public TrackItem(Bundle b) {
         trackItem = b;
+    }
+
+    public Uri getArtUri() {
+        return trackItem.getParcelable(Keys.ART_URI);
+    }
+
+    /**
+     * Sets the cover art of the current track
+     *
+     * @param u Cover {@link Uri} from media store
+     * @return itself.
+     */
+    public TrackItem setArt(Uri u) {
+        trackItem.putParcelable(Keys.ART_URI, u);
+        return this;
     }
 
     public Bitmap getArt() {
@@ -91,6 +107,7 @@ public class TrackItem {
      */
     public static class Keys {
         public static String ART = "art";
+        public static String ART_URI = "uri";
         public static String TITLE = "title";
         public static String ARTIST = "artist";
         public static String DURATION = "duration";
