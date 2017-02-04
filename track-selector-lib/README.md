@@ -12,7 +12,7 @@ repositories {
 }
 
 dependencies {
-    compile 'de.Maxr1998:track-selector-lib:1.1'
+    compile 'de.Maxr1998:track-selector-lib:1.2'
 }
 ```
 
@@ -32,7 +32,7 @@ public class MusicService extends Service {
     …
       Create track item for each track
       TrackItem ti = new TrackItem();
-      ti.setArt(<coverBitmap>)
+      ti.setArt(<Cover Bitmap OR MediaStore Uri>)
           .setTitle(<title>)
           .setArtist(<artist>)
           .setDuration(<duration>);
@@ -48,7 +48,7 @@ public class MusicService extends Service {
    */
   public void updateNotification() {
     Notification n;
-    … // create your Notitfication
+    … // Create your Notitfication
     NotificationHelper.insertToNotification(n, createListFromQueue(), this /*Service which handles your commands*/,<currentPlayingPostition>)
   }
   …
@@ -56,6 +56,7 @@ public class MusicService extends Service {
   public void onStartCommand(Intent intent, int a, int b) {
     // Check if intent comes from queue switcher
     if (NotificationHelper.checkIntent(intent)) {
+        // Seek to the requested position
         seekTo(NotificationHelper.getPosition(intent));
         return;
     }
