@@ -8,8 +8,8 @@ import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.Typeface;
+import android.media.session.MediaController;
 import android.net.Uri;
-import android.os.Bundle;
 import android.provider.MediaStore;
 import android.support.v7.widget.RecyclerView;
 import android.text.SpannableString;
@@ -35,9 +35,10 @@ public class CustomTrackAdapter extends RecyclerView.Adapter<CustomTrackAdapter.
     public static final String SEEK_COUNT_EXTRA = "new_queue_position";
 
     private final ContentResolver contentResolver;
-    private final List<Bundle> mList;
+    private final List<TrackItem> mList;
     private final int mCurrentPosition;
     private final PendingIntent mReply;
+    private final MediaController.TransportControls mTransportControls;
     private final Runnable mCloseRunnable;
 
     private int layoutId;
@@ -45,11 +46,12 @@ public class CustomTrackAdapter extends RecyclerView.Adapter<CustomTrackAdapter.
 
     private HashMap<Uri, WeakReference<Bitmap>> bitmapCache = new HashMap<>();
 
-    public CustomTrackAdapter(Context context, List<Bundle> list, int position, PendingIntent replyIntent, Runnable closeRunnable) {
+    public CustomTrackAdapter(Context context, List<TrackItem> list, int position, PendingIntent replyIntent, MediaController.TransportControls controls, Runnable closeRunnable) {
         contentResolver = context.getContentResolver();
         mList = list;
         mCurrentPosition = position;
         mReply = replyIntent;
+        mTransportControls = controls;
         mCloseRunnable = closeRunnable;
     }
 
@@ -68,7 +70,7 @@ public class CustomTrackAdapter extends RecyclerView.Adapter<CustomTrackAdapter.
 
     @Override
     public void onBindViewHolder(final TrackViewHolder holder, int position) {
-        TrackItem item = new TrackItem(mList.get(position));
+        final TrackItem item = mList.get(position);
         Bitmap art = item.getArt();
         Uri uri = item.getArtUri();
         if (art != null) {
@@ -94,15 +96,19 @@ public class CustomTrackAdapter extends RecyclerView.Adapter<CustomTrackAdapter.
         holder.itemView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent intent = new Intent();
-                intent.putExtra(SEEK_COUNT_EXTRA, holder.getAdapterPosition() - mCurrentPosition);
-                try {
-                    mReply.send(holder.itemView.getContext(), 0, intent);
-                } catch (PendingIntent.CanceledException e) {
-                    log(e);
-                }
-                if (mCloseRunnable != null) {
-                    mCloseRunnable.run();
+                if (mReply != null) {
+                    Intent intent = new Intent();
+                    intent.putExtra(SEEK_COUNT_EXTRA, holder.getAdapterPosition() - mCurrentPosition);
+                    try {
+                        mReply.send(holder.itemView.getContext(), 0, intent);
+                    } catch (PendingIntent.CanceledException e) {
+                        log(e);
+                    }
+                    if (mCloseRunnable != null) {
+                        mCloseRunnable.run();
+                    }
+                } else if (mTransportControls != null) {
+                    mTransportControls.skipToQueueItem(item.id);
                 }
             }
         });
