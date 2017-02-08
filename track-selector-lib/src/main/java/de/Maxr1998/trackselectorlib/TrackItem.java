@@ -34,6 +34,7 @@ public class TrackItem {
      * @return itself.
      */
     public TrackItem setArt(Uri u) {
+        trackItem.remove(Keys.ART);
         trackItem.putParcelable(Keys.ART_URI, u);
         return this;
     }
@@ -49,6 +50,7 @@ public class TrackItem {
      * @return itself.
      */
     public TrackItem setArt(Bitmap b) {
+        trackItem.remove(Keys.ART_URI);
         trackItem.putParcelable(Keys.ART, b);
         return this;
     }
