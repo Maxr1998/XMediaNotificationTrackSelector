@@ -2,9 +2,12 @@ package de.Maxr1998.xposed.mnts;
 
 import android.app.Notification;
 import android.content.Context;
+import android.media.session.MediaController;
 import android.media.session.MediaSession;
+import android.media.session.MediaSessionManager;
 import android.os.Bundle;
 import android.service.notification.StatusBarNotification;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,6 +17,7 @@ import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 
 import java.lang.reflect.Method;
+import java.util.List;
 
 import de.Maxr1998.xposed.mnts.view.TrackSelectorView;
 import de.robv.android.xposed.XC_MethodHook;
@@ -62,10 +66,27 @@ public class TrackSelector {
             findAndHookMethod(PACKAGE_NAME + ".statusbar.ExpandableNotificationRow", lPParam.classLoader, "setStatusBarNotification", StatusBarNotification.class, new XC_MethodHook() {
                 @Override
                 protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                    final Bundle extras = ((StatusBarNotification) param.args[0]).getNotification().extras;
+                    final StatusBarNotification sbn = (StatusBarNotification) param.args[0];
+                    final String packageName = sbn.getPackageName();
+                    final Bundle extras = sbn.getNotification().extras;
+
+                    // Retrieve token from Notification
                     MediaSession.Token token = extras.getParcelable(Notification.EXTRA_MEDIA_SESSION);
-                    if (token != null)
+                    // Retrieve token from MediaSessionManager
+                    if (token == null) {
+                        MediaSessionManager manager = (MediaSessionManager) ((View) param.thisObject).getContext().getSystemService(Context.MEDIA_SESSION_SERVICE);
+                        List<MediaController> sessions = manager.getActiveSessions(null);
+                        for (int i = 0; i < sessions.size(); i++) {
+                            MediaController controller = sessions.get(i);
+                            if (packageName.equals(controller.getPackageName())) {
+                                token = controller.getSessionToken();
+                            }
+                        }
+                    }
+                    if (token != null) {
+                        Log.i("XMNTS", packageName + " has token");
                         addToNotificationContent((View) callMethod(callMethod(param.thisObject, "getPrivateLayout"), "getExpandedChild"), token);
+                    }
                 }
             });
 
@@ -91,8 +112,9 @@ public class TrackSelector {
         for (int i = 0; i < expandedView.getChildCount(); i++) {
             View child = expandedView.getChildAt(i);
             if (child instanceof TrackSelectorView) {
-                if (token != null && false /* false for now */) {
-                    ((TrackSelectorView) child).setToken(token);
+                TrackSelectorView trackSelector = (TrackSelectorView) child;
+                if (token != null && trackSelector.hasToken()) { // Only update with "new" token if it used a token before
+                    trackSelector.setToken(token);
                 }
                 return;
             }
@@ -123,7 +145,6 @@ public class TrackSelector {
             titleContainerParams.setMarginEnd(titleContainerParams.rightMargin);
         }
         // Add views
-        expandedView.addView(trackSelectorView, expandedView.getChildCount(), new ViewGroup.MarginLayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         ViewGroup.MarginLayoutParams buttonParams;
         if (expandedView instanceof RelativeLayout) {
             buttonParams = new RelativeLayout.LayoutParams((int) (density * 48), (int) (density * 48));
@@ -132,9 +153,30 @@ public class TrackSelector {
         } else if (expandedView instanceof FrameLayout) {
             buttonParams = new FrameLayout.LayoutParams((int) (density * 48), (int) (density * 48));
             ((FrameLayout.LayoutParams) buttonParams).gravity = Gravity.TOP | Gravity.END;
+        } else if (expandedView instanceof LinearLayout) {
+            Object parent = expandedView.getParent();
+            View backup = expandedView;
+            expandedView = new FrameLayout(mContext);
+            expandedView.setLayoutParams(new FrameLayout.LayoutParams(backup.getLayoutParams().width, backup.getLayoutParams().height));
+            callMethod(parent, "setExpandedChild", expandedView);
+            expandedView.addView(disconnect(backup, true));
+            backup.setVisibility(View.VISIBLE);
+            backup.setAlpha(1.0f);
+            buttonParams = new FrameLayout.LayoutParams((int) (density * 48), (int) (density * 48));
+            ((FrameLayout.LayoutParams) buttonParams).gravity = Gravity.TOP | Gravity.END;
         } else {
             buttonParams = new ViewGroup.MarginLayoutParams((int) (density * 48), (int) (density * 48));
         }
+        expandedView.addView(trackSelectorView, expandedView.getChildCount(), new ViewGroup.MarginLayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         expandedView.addView(queueButton, expandedView.getChildCount(), buttonParams);
+    }
+
+    private static <V extends View> V disconnect(V v, boolean relayout) {
+        ViewGroup parent = (ViewGroup) v.getParent();
+        if (parent != null) {
+            if (relayout) parent.removeView(v);
+            else parent.removeViewInLayout(v);
+        }
+        return v;
     }
 }

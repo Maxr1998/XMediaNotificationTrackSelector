@@ -18,6 +18,7 @@ import android.support.annotation.Nullable;
 import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewAnimationUtils;
@@ -148,6 +149,7 @@ public class TrackSelectorView extends RecyclerView {
             MediaController controller = new MediaController(getContext(), mediaToken);
             List<MediaSession.QueueItem> queue = controller.getQueue();
             if (queue != null) {
+                Log.i("XMNTS", controller.getPackageName() + " has queue");
                 List<TrackItem> tracks = new ArrayList<>();
                 int position = 0;
                 for (int i = 0; i < queue.size(); i++) {
@@ -156,7 +158,7 @@ public class TrackSelectorView extends RecyclerView {
                     TrackItem track = new TrackItem()
                             .setTitle(String.valueOf(description.getTitle()))
                             .setArtist(String.valueOf(description.getSubtitle()))
-                            .setDuration("1:00")
+                            .setDuration("")
                             .setArt(description.getIconUri());
                     track.id = item.getQueueId();
                     if (controller.getPlaybackState() != null && track.id == controller.getPlaybackState().getActiveQueueItemId()) {
@@ -167,6 +169,10 @@ public class TrackSelectorView extends RecyclerView {
                 enable(tracks, position, null, controller.getTransportControls());
             }
         }
+    }
+
+    public boolean hasToken() {
+        return mediaToken != null;
     }
 
     private void enable(List<TrackItem> tracks, int position, PendingIntent reply, MediaController.TransportControls controls) {
