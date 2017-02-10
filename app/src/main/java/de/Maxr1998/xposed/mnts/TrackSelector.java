@@ -113,7 +113,7 @@ public class TrackSelector {
             View child = expandedView.getChildAt(i);
             if (child instanceof TrackSelectorView) {
                 TrackSelectorView trackSelector = (TrackSelectorView) child;
-                if (token != null && trackSelector.hasToken()) { // Only update with "new" token if it used a token before
+                if (token != null && (trackSelector.hasToken() || trackSelector.getAdapter() == null)) { // Only update with the "new" token if it used a token before or the adapter is still empty
                     trackSelector.setToken(token);
                 }
                 return;
