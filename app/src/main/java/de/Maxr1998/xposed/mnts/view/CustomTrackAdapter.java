@@ -108,7 +108,11 @@ public class CustomTrackAdapter extends RecyclerView.Adapter<CustomTrackAdapter.
                         mCloseRunnable.run();
                     }
                 } else if (mTransportControls != null) {
-                    mTransportControls.skipToQueueItem(item.id);
+                    if (holder.getAdapterPosition() - mCurrentPosition == 0) {
+                        mTransportControls.play();
+                    } else {
+                        mTransportControls.skipToQueueItem(item.id);
+                    }
                 }
             }
         });
